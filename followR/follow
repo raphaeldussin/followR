@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+import subprocess
+import sys
+import os
+import datetime as dt
+import random
+
+def execute(command):
+	try:
+		istatus = subprocess.check_call(command,shell=True)
+	except subprocess.CalledProcessError:
+		istatus = 1
+	return istatus
+
+def append_to_log(jobstatus,pseudopid,command_str,now):
+	home = subprocess.check_output('echo $HOME',shell=True).replace('\n','')
+	if not os.path.isdir(home + '/.followR/'):
+		os.system('mkdir ' + home + '/.followR/')
+	f = open(home + '/.followR/follow.log','a')
+	f.write(jobstatus + ' ' + pseudopid + ' ' + command_str + ' ' + \
+                now.strftime('%Y-%m-%d@%H:%M') + '\n')
+	f.close()
+	return None
+
+def command_as_string(command):
+	out=''
+	if len(command) == 1:
+		out = command[0]
+	else:
+		for item in command:
+			out = out + ' ' + item
+	return out
+
+command = sys.argv[1:]
+command_str = command_as_string(command)
+now = dt.datetime.now()
+
+pseudopid = str(int(random.uniform(0,1000))).zfill(4)
+
+append_to_log('RUNNING  ',pseudopid,command_str,now)
+istatus = execute(command)
+
+now = dt.datetime.now()
+if istatus == 0:
+	append_to_log('COMPLETED',pseudopid,command_str,now)
+else:
+	append_to_log('FAILED   ',pseudopid,command_str,now)
